@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce configure.
-AC_INIT(music, 1.1.17)
+AC_INIT(music, 1.2.1)
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER([config.h])
 AM_MAINTAINER_MODE
@@ -219,22 +219,7 @@ dnl Must use $CXX, not $MPI_CXX, here
 
 CXX="$CXX $MPI_CXXFLAGS"
 LIBS="$LIBS $MPI_LDFLAGS"
-AC_CHECK_FUNCS([rts_get_personality ompi_comm_free MPI_Comm_create_errhandler])
-
-AC_MSG_CHECKING([for MPI::Init_thread method])
-ac_have_cxx_mpi_init_thread=no
-AC_COMPILE_IFELSE(
-  [AC_LANG_SOURCE([
-#include <mpi.h>
-int main (int argc, char **argv)
-{
-  int res = MPI::Init_thread (argc, argv, 0);
-}
-])],
-AC_DEFINE(HAVE_CXX_MPI_INIT_THREAD, 1, [Define to 1 if you have the MPI::Init_thread method])
-ac_have_cxx_mpi_init_thread=yes
-)
-AC_MSG_RESULT($ac_have_cxx_mpi_init_thread)
+AC_CHECK_FUNCS([rts_get_personality ompi_comm_free MPI_Comm_create_errhandler MPI_Init_thread])
 
 AC_ARG_ENABLE(mpi,
               [  --disable-mpi           disable mpi support],
@@ -340,10 +325,13 @@ AS_IF([test "x$with_python" != "xno"],
       [have_python=no])
 
 AS_IF([test "x$have_python" = "xyes"], [
-    PYTHON_INC=`$PYTHON -c 'import sys; from distutils import sysconfig; sys.stdout.write(sysconfig.get_python_inc())'`
+    PYTHON_INC=`$PYTHON -c 'import sys; import sysconfig; sys.stdout.write(sysconfig.get_path("include"))'`
     AC_CHECK_FILE(["${PYTHON_INC}/Python.h"],
     		  [PYMUSIC_CPPFLAGS="-I${PYTHON_INC}"; PYBUFFER_CPPFLAGS="-I${PYTHON_INC}"],
                   [have_python=no])
+    # This replaces pyexecdir since Automake 1.16 has a bug which concatenates
+    # the prefix (which might be local) and the platlib (might might start with local)
+    PYTHON_EXECDIR=`$PYTHON -c 'import sys; import sysconfig; sys.stdout.write(sysconfig.get_path("platlib"))'`
 ])
 
 AC_MSG_CHECKING([whether to build PyMUSIC])
@@ -376,9 +364,12 @@ AC_ARG_ENABLE([deb],
 	       esac],[deb_package=false])
 AM_CONDITIONAL([DEB_PACKAGE], [test x$deb_package = xtrue])
 if test x$deb_package = xtrue; then
-  pythondir="\${exec_prefix}/lib/python3/dist-packages"
-  pyexecdir="\${exec_prefix}/lib/python3/dist-packages"
+  PYTHON_EXECDIR="\${exec_prefix}/lib/python3/dist-packages"
 fi
+# Have files install in the same location as was retried from Python:
+# (Standard place is site-packages but Debian uses dist-packages.)
+pythondir=${PYTHON_EXECDIR}
+pyexecdir=${PYTHON_EXECDIR}
 
 # if Python is found, configure and compile PyMUSIC
 if test "x$have_python" = "xyes" ; then
@@ -415,7 +406,7 @@ AC_SUBST([HAVE_PYTHON])
 AC_SUBST([MUSICCONFIGDIR])
 AC_SUBST([PYMUSIC_SUBDIR])
 AC_SUBST([ROS_SUBDIR])
-AC_SUBST([PYEXECDIR], ${pyexecdir})
+AC_SUBST([PYTHON_EXECDIR])
 
 AC_SUBST([PYTHON])
 AC_SUBST([PYTHON_VERSION])

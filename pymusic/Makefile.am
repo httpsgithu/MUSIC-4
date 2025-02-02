@@ -4,7 +4,8 @@ SUBDIRS = examples
 
 EXTRA_DIST = setup.py.in tests.py pymusic.pyx pymusic.pxd pybuffer.pyx pybuffer.pxd \
              music/__init__.py music/music_c.h music/pybuffer.pxd music/pymusic.pxd \
-             music/pymusic_c.h mpi_compat.h
+             music/pymusic_c.h mpi_compat.h \
+             looseversion/__init__.py looseversion/LICENSE
 
 BUILT_SOURCES = pymusic.cpp pybuffer.cpp
 
@@ -54,14 +55,16 @@ if DEB_PACKAGE
 install-exec-hook:
 	$(PYTHON) setup.py build \
 	  --build-base=$(abs_builddir)/build install \
+	  --old-and-unmanageable \
 	  --install-layout=deb \
 	  --prefix=$(DESTDIR)$(prefix)
 else
 install-exec-hook:
 	$(PYTHON) setup.py build \
 	  --build-base=$(abs_builddir)/build install \
-	  --prefix=$(DESTDIR)$(prefix)
-	  --install-lib=$(DESTDIR)$(pyexecdir) \
+	  --old-and-unmanageable \
+	  --prefix=$(DESTDIR)$(prefix) \
+	  --install-lib=$(DESTDIR)$(PYTHON_EXECDIR) \
 	  --install-scripts=$(DESTDIR)$(bindir) \
 	  --install-data=$(DESTDIR)$(pkgdatadir)
 endif
